@@ -4,6 +4,7 @@ from django.test.runner import DiscoverRunner
 
 from snapshottest.reporting import reporting_lines
 from .unittest import TestCase as uTestCase
+from .module import SnapshotModule
 
 
 class TestRunner(DiscoverRunner):
@@ -13,7 +14,7 @@ class TestRunner(DiscoverRunner):
 
     def __init__(self, snapshot_update=False, **kwargs):
         super(TestRunner, self).__init__(**kwargs)
-        TestCase.snapshot_should_update = snapshot_update
+        uTestCase.snapshot_should_update = snapshot_update
 
     @classmethod
     def add_arguments(cls, parser):
@@ -30,6 +31,11 @@ class TestRunner(DiscoverRunner):
                 **kwargs
         )
         self.print_report()
+        if TestCase.snapshot_should_update:
+            for module in SnapshotModule.get_modules():
+                module.delete_unvisited()
+                module.save()
+
         return result
 
     def print_report(self):

@@ -1,3 +1,5 @@
+import codecs
+import errno
 import os
 import imp
 from collections import defaultdict
@@ -29,10 +31,15 @@ class SnapshotModule(object):
     def load_snapshots(self):
         try:
             source = imp.load_source(self.module, self.filepath)
+        # except FileNotFoundError:  # Python 3
+        except (IOError, OSError) as err:
+            if err.errno == errno.ENOENT:
+                return Snapshot()
+            else:
+                raise
+        else:
             assert isinstance(source.snapshots, Snapshot)
             return source.snapshots
-        except BaseException:
-            return Snapshot()
 
     def visit(self, snapshot_name):
         self.visited_snapshots.add(snapshot_name)
@@ -139,7 +146,7 @@ class SnapshotModule(object):
 
         pretty = Formatter(self.imports)
 
-        with open(self.filepath, 'w') as snapshot_file:
+        with codecs.open(self.filepath, 'w', encoding="utf-8") as snapshot_file:
             snapshots_declarations = []
             for key, value in self.snapshots.items():
                 snapshots_declarations.append('''snapshots['{}'] = {}'''.format(key, pretty(value)))
